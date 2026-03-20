@@ -16,7 +16,7 @@ def setup_logger(log_file: str = "mycashflow.log"):
     LOG_DIR = PROJECT_ROOT / "logs"
     LOG_DIR.mkdir(exist_ok=True)
 
-    file_handler = logging.FileHandler(LOG_DIR / log_file, encoding="utf-8")
+    file_handler = logging.FileHandler(LOG_DIR / log_file, mode="w", encoding="utf-8")
     file_handler.setLevel(logging.DEBUG)
 
     # створюємо форматтер: час виведення (asctime), ім'я файлу (filename), назву функції (funcName), номер рядка (lineno), рівень (levelname) та саме повідомлення (message)

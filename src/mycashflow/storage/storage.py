@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from mycashflow.logging.logger import logger
+from mycashflow.models.transaction import Transaction
 
 # корінь проєкту
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
@@ -48,3 +49,13 @@ class JSONStorage:
             item["id"] = len(data) + 1  # простий авто-ID
         data.append(item)
         self.save(data)
+
+    def add_transaction(self, transaction: Transaction):
+        logger.debug("Add Transaction to JSONStorage: %s", transaction.group)
+        item = {
+            "id": transaction.id,  # JSONStorage додасть, якщо None
+            "group": transaction.group,
+            "entries": [{"account": e.account, "amount": e.amount} for e in transaction.entries],
+            "total": transaction.total
+        }
+        self.add(item)
