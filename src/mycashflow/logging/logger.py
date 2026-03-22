@@ -29,7 +29,7 @@ def setup_logger(log_file: str = "mycashflow.log"):
     file_handler.setFormatter(formatter)
 
     # додаємо handler до логера
-    logger.addHandler(console_handler)
+    # logger.addHandler(console_handler)
     logger.addHandler(file_handler)
 
     return logger
