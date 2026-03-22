@@ -2,10 +2,23 @@ from dataclasses import dataclass, field
 from typing import List
 
 
-@dataclass
 class Entry:
-    account: str
-    amount: float
+
+    def __init__(self, account: str, amount: float):
+        self.account: str = account
+        self._amount = None
+        self.amount = amount
+
+    @property
+    def amount(self) -> int:
+        return self._amount
+
+    @amount.setter
+    def amount(self, amount: float) -> None:
+        self._amount = amount
+
+    def __str__(self) -> int:
+        return str(f"{self.account}: {self.amount}")
 
 
 @dataclass
@@ -16,7 +29,11 @@ class Transaction:
 
     @property
     def total(self) -> float:
-        return sum(entry.amount for entry in self.entries)
+        return sum((entry.amount * entry.scale) for entry in self.entries)
 
     def add_entry(self, account: str, amount: float):
-        self.entries.append(Entry(account=account, amount=amount))
+        self.entries.append(
+            Entry(account=account, amount=amount)
+        )
+
+    
