@@ -25,7 +25,21 @@ class Transaction:
             Entry(id=id, parent_id=self.id, account=account, amount=amount)
         )
 
-    def out_tree(self, prefix_parts: str = None, is_last=True, max_name_len=None):
+    def _get_max_deep_tree(self, deep:int = 0):
+
+        if len(self.entries) > 0 or len(self.children) > 0:
+            deep += 1
+
+        deep_child = []
+        for child in self.children:
+            deep_child.append(child._get_max_deep_tree(deep=deep))
+
+        if deep_child:
+            deep = max(deep_child)
+
+        return deep
+
+    def _build_tree(self, deep: int, prefix_parts: str = None, is_last=True):
         result: str = ""
 
         if prefix_parts is None:
@@ -40,7 +54,7 @@ class Transaction:
         connector = "└─" if is_last else "├─"
 
         tree = f"{prefix}{connector}[T] {self.id:06d}"
-        result += f"{tree} {self.group}: {self.total}\n"
+        result += f"{tree:<{deep}} {self.group}: {self.total}\n"
 
         # додаємо інформацію про поточний рівень
         new_prefix_parts = prefix_parts + [is_last]
@@ -66,12 +80,17 @@ class Transaction:
             child_tree = f"{child_prefix}{connector}[e] {item.id:06d}"
 
             if item_type == "entry":
-                result += f"{child_tree} {item.account}: {item.amount}\n"
+                result += f"{child_tree:<{deep}} {item.account}: {item.amount}\n"
             else:
-                result += item.out_tree(prefix_parts=new_prefix_parts, is_last=is_last_item)
+                result += item._build_tree(deep=deep, prefix_parts=new_prefix_parts, is_last=is_last_item)
 
         return result
 
+    def out_tree(self):
+
+        deep = self._get_max_deep_tree(deep=0) + 1
+        deep = 2 + deep * 3 + 7
+        return str(self._build_tree(deep=deep))
 
     def __str__(self) -> int:
         output_str: str = f"{self.id:06d} - {self.group}: {self.total}"
