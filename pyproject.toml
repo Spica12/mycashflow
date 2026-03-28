@@ -20,4 +20,7 @@ test = [
     "pytest (>=9.0.2,<10.0.0)"
 ]
 
-
+[tool.poetry.packages]
+packages = [
+    { include = "mycashflow", from = "src" }
+]
