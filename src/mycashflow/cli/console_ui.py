@@ -11,10 +11,10 @@ class ConsoleUI:
     def __init__(self):
         self.manager = TransactionManager()
         self.current_transaction = self.manager.get_by_id(1)
-        self.result = ""
-
         if self.current_transaction is None:
             self.add_transaction()
+
+        self.result = ""
 
     def clear_screen(self):
         logger.debug("Clean screen")
@@ -35,15 +35,15 @@ class ConsoleUI:
     # -------------------- Додавання --------------------
     def add_transaction(self):
         self.result = "Введіть назву танзакції"
-        self.show()
+        # self.show()
         group = input(">>>> ")
 
         if self.current_transaction:
-            new_transaction = self.manager.add_transaction(parent_id=self.current_transaction.id, group=group)
+            new_transaction = self.manager.add_transaction(parent=self.current_transaction, group=group)
             # self.current_transaction.children.append(new_transaction)
             # self.manager.update_transaction(self.current_transaction)
         else:
-            new_transaction = self.manager.add_transaction(parent_id=None, group=group)
+            new_transaction = self.manager.add_transaction(parent=None, group=group)
 
         self.current_transaction = new_transaction
 

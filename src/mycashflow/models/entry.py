@@ -1,10 +1,18 @@
+
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .transaction import Transaction
+
 
 @dataclass
 class Entry:
 
     id: int
     parent_id: int
+    parent: "Transaction"
+
     account: str
     amount: int
 
@@ -22,16 +30,18 @@ class Entry:
     def to_dict(self) -> dict:
         return {
             "id": self.id,
-            "parent_id": self.parent_id,
+            "type": 'entry',
+            "parent_id": self.parent.id,
             "account": self.account,
             "amount": self.amount
         }
 
     @classmethod
     def from_dict(cls, data: dict) -> "Entry":
-        return cls(
-            id=data["id"],
-            parent_id=data["parent_id"],
-            account=data["account"],
-            amount=data["amount"]
-        )
+        if data["type"] == "entry":
+            return cls(
+                id=data["id"],
+                parent_id=data["parent_id"],
+                account=data["account"],
+                amount=data["amount"]
+            )

@@ -54,7 +54,7 @@ class ConsoleUI:
 
     def display_menu(self, transaction: Transaction):
         len_buttons = len(transaction.entries)
-        
+
         for i, button in enumerate(len_buttons, start=1):
             print(f"{i}. {button.text}")
 
