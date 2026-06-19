@@ -1,2 +1,44 @@
 # mycashflow
 Домашній вебзастосунок ведення бухгалтерії
+
+## Запуск
+
+Запустіть сервер командою в терміналі:
+```bash
+uvicorn main:app --reload
+```
+В браузері перейти за адресою: http://127.0.0.1:8000.
+
+
+## Init virtual environment
+
+### Virtual Env
+
+```bash
+poetry init
+poetry config --local virtualenvs.in-project true
+C:\Users\Vital\AppData\Local\Programs\Python\Python314\python.exe -m venv .venv
+poetry env use .venv\Scripts\python.exe
+poetry env activate
+poetry install
+```
+
+
+### Бібліотеки
+```bash
+poetry add pytest --group test
+poetry add fastapi uvicorn jinja2 python-multipart
+poetry add alembic
+```
+
+- `python-multipart` обов'язковий, щоб FastAPI міг приймати дані з HTML-форм
+
+
+### Migrations
+
+```bash
+alembic init alembic
+alembic revision --autogenerate -m 'init'
+alembic upgrade head
+alembic downgrade -1
+```
