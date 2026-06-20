@@ -5,8 +5,8 @@
 ### Загальне
 - [x] Створити проєкт FastAPI
 - [x] Файл налаштувань `.env`
-- [ ] Налаштування `docker-compose` для FastAPI + PostgreSQL
-- [ ] Налаштувати PostgreSQL
+- [x] Налаштування `docker-compose` для FastAPI + PostgreSQL
+- [x] Налаштувати PostgreSQL
 - [ ] Налаштувати Alembic для міграцій БД
 - [x] Налаштувати логування
 - [ ] Створити базовий шаблон (base.html)

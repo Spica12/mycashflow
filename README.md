@@ -80,3 +80,8 @@ cp .env.example .env
 ### Як це працює
 - Якщо задано `DATABASE_URL` → використовується він
 - Якщо ні → URL збирається автоматично з DB_* змінних
+
+## Запуск docker-compose
+```bash
+docker-compose up --build
+```
