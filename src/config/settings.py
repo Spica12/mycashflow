@@ -28,8 +28,8 @@ class DbSettings(BaseSettings, ModelConfig):
     def DB_URL(self) -> str:
 
         # 1. якщо є готовий URL → використовуємо його
-        if self.DB_URL:
-            return self.DB_URL
+        if self.DATABASE_URL:
+            return self.DATABASE_URL
 
         # 2. fallback → будуємо з частин
         return (

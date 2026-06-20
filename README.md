@@ -36,6 +36,7 @@ poetry add pytest --group test
 poetry add fastapi uvicorn jinja2 python-multipart
 poetry add alembic
 poetry add pydantic-settings
+poetry add sqlalchemy psycopg-binary asyncpg
 ```
 
 - `python-multipart` обов'язковий, щоб FastAPI міг приймати дані з HTML-форм
@@ -48,6 +49,11 @@ alembic init alembic
 alembic revision --autogenerate -m 'init'
 alembic upgrade head
 alembic downgrade -1
+
+# В контейнері
+docker compose up -d db
+docker compose run --rm app alembic revision --autogenerate -m "Initial migration"
+docker compose run --rm app alembic upgrade head
 ```
 
 # GIT
@@ -90,4 +96,15 @@ cp .env.example .env
 ## Запуск docker-compose
 ```bash
 docker-compose up --build
+```
+
+## Зупинка docker-compose
+```bash
+docker-compose down -v
+```
+
+Оновити requirements.txt
+```bash
+poetry lock --no-update
+poetry export --without-hashes --format=requirements.txt > requirements.txt
 ```
