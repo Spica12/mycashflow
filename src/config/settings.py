@@ -53,6 +53,9 @@ class Settings(BaseSettings, ModelConfig):
 
     BASE_DIR: Path = Path(__file__).parent.parent
 
+    SECRET_KEY_JWT: str = "1234567890"
+
+
 
 
 settings = Settings()

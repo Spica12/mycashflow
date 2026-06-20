@@ -6,6 +6,7 @@ from fastapi.templating import Jinja2Templates
 from src.config.settings import settings
 from src.dependencies.db import check_db_connection
 from src.middleware.logging import log_requests
+from src.routers import auth
 from src.utils.logging import logger
 
 
@@ -21,6 +22,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 app.middleware("http")(log_requests)
+app.include_router(auth.router_auth, prefix="/api")
+
 
 templates = Jinja2Templates(directory="src/templates")
 

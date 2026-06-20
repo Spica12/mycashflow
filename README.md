@@ -37,7 +37,7 @@ poetry add fastapi uvicorn jinja2 python-multipart
 poetry add alembic
 poetry add pydantic-settings
 poetry add sqlalchemy psycopg-binary asyncpg
-poetry add pwdlib[bcrypt] pyjwt
+poetry add pwdlib[bcrypt, argon2] pyjwt python-jose pydantic[email]
 ```
 
 - `python-multipart` обов'язковий, щоб FastAPI міг приймати дані з HTML-форм
@@ -56,6 +56,7 @@ alembic downgrade -1
 docker compose up -d db
 docker compose run --rm app alembic revision --autogenerate -m "Initial migration"
 docker compose run --rm app alembic upgrade head
+docker compose run --rm app alembic downgrade -1
 ```
 
 # GIT
