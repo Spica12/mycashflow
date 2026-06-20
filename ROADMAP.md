@@ -69,6 +69,10 @@
 * [ ] Чистий капітал
 * [ ] Останні операції
 
+### Логування
+
+* [ ] зроби audit log `User 12 created transaction 155` або `User 12 deleted account 3`
+
 
 ### Пошук
 
