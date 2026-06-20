@@ -29,6 +29,7 @@ poetry install
 poetry add pytest --group test
 poetry add fastapi uvicorn jinja2 python-multipart
 poetry add alembic
+poetry add pydantic-settings
 ```
 
 - `python-multipart` обов'язковий, щоб FastAPI міг приймати дані з HTML-форм
@@ -50,3 +51,32 @@ alembic downgrade -1
 - `chore`   - технічні зміни (gitignore, refactor без логіки)
 - `refactor`- перепис коду без зміни поведінки
 - `docs`    - документація
+
+
+## ⚙️ Environment Variables (.env)
+
+Для запуску проєкту потрібно створити файл `.env` у корені проєкту.
+
+### 1. Створи файл `.env`
+
+Скопіюй приклад:
+
+```bash
+cp .env.example .env
+```
+
+### Опис змінних
+
+| Змінна       | Опис                                                |
+| ------------ | --------------------------------------------------- |
+| MODE         | Режим роботи (DEV / PROD)                           |
+| DB_HOST      | Хост бази даних (localhost або docker service name) |
+| DB_PORT      | Порт PostgreSQL                                     |
+| DB_USER      | Користувач БД                                       |
+| DB_PASSWORD  | Пароль БД                                           |
+| DB_NAME      | Назва бази даних                                    |
+| DATABASE_URL | Повний URL БД (опціонально, для cloud / production) |
+
+### Як це працює
+- Якщо задано `DATABASE_URL` → використовується він
+- Якщо ні → URL збирається автоматично з DB_* змінних
