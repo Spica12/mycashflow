@@ -42,3 +42,11 @@ alembic revision --autogenerate -m 'init'
 alembic upgrade head
 alembic downgrade -1
 ```
+
+# GIT
+
+- `feat`    - нова фіча (функціонал)
+- `fix`	    - виправлення багу
+- `chore`   - технічні зміни (gitignore, refactor без логіки)
+- `refactor`- перепис коду без зміни поведінки
+- `docs`    - документація
