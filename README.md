@@ -37,10 +37,12 @@ poetry add fastapi uvicorn jinja2 python-multipart
 poetry add alembic
 poetry add pydantic-settings
 poetry add sqlalchemy psycopg-binary asyncpg
+poetry add pwdlib[bcrypt] pyjwt
 ```
 
 - `python-multipart` обов'язковий, щоб FastAPI міг приймати дані з HTML-форм
-
+- `pwdlib[bcrypt]` — відповідає за надійне криптографічне хешування паролів.
+- `pyjwt` — знадобиться для генерації токенів авторизації.
 
 ### Migrations
 
