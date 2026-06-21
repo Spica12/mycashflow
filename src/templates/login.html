@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}MyCashFlow — Вхід{% endblock %}
+
+{% block styles %}
+<style>
+    .auth-card {
+        background: white;
+        padding: 40px;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        width: 100%;
+        max-width: 400px;
+        box-sizing: border-box;
+    }
+
+    h2 {
+        font-size: 2rem;
+        margin-bottom: 25px;
+        text-align: center;
+        font-weight: bold;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+        text-align: left;
+    }
+
+    label {
+        display: block;
+        font-size: 0.9rem;
+        margin-bottom: 8px;
+        color: #555;
+        font-weight: 500;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 12px;
+        font-size: 1rem;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        box-sizing: border-box;
+    }
+
+    .form-control:focus {
+        border-color: #0d6efd;
+        outline: none;
+    }
+
+    .btn-submit {
+        width: 100%;
+        padding: 12px;
+        background-color: #0d6efd;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        margin-top: 10px;
+        font-weight: bold;
+    }
+
+    .btn-submit:hover {
+        background-color: #0b5ed7;
+    }
+
+    .error-message {
+        display: none;
+        background-color: #f8d7da;
+        color: #842029;
+        border: 1px solid #f5c2c7;
+        padding: 10px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        font-size: 0.9rem;
+        text-align: left;
+    }
+
+    .auth-links {
+        margin-top: 20px;
+        text-align: center;
+        font-size: 0.9rem;
+        color: #666;
+    }
+
+    .auth-links a {
+        color: #0d6efd;
+        text-decoration: none;
+    }
+
+    .auth-links a:hover {
+        text-decoration: underline;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-card">
+    <h2>Увійти</h2>
+
+    <div id="errorMessage" class="error-message"></div>
+
+    <form id="loginForm">
+        <div class="form-group">
+            <label for="email">Електронна пошта</label>
+            <input type="email" id="email" class="form-control" placeholder="example@mail.com" required>
+        </div>
+
+        <div class="form-group">
+            <label for="password">Пароль</label>
+            <input type="password" id="password" class="form-control" placeholder="••••••••" required>
+        </div>
+
+        <button type="submit" class="btn-submit">
+            Увійти
+        </button>
+    </form>
+
+    <div class="auth-links">
+        Ще немає акаунта? <a href="/auth/register">Реєстрація</a>
+    </div>
+</div>
+
+<script>
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const errorBlock = document.getElementById('errorMessage');
+    if (errorBlock) errorBlock.style.display = 'none';
+
+    // Створюємо об'єкт параметрів форми
+    const params = new URLSearchParams();
+    // В OAuth2 формах email завжди передається в поле 'username'
+    params.append('username', document.getElementById('email').value);
+    params.append('password', document.getElementById('password').value);
+
+    try {
+        const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: params
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            // Якщо вхід успішний, перенаправляємо в майбутній профіль
+            window.location.href = '/';
+        } else {
+            if (errorBlock) {
+                errorBlock.innerHTML = data.detail || 'Невірний email або пароль';
+                errorBlock.style.display = 'block';
+            }
+        }
+    } catch (err) {
+        if (errorBlock) {
+            errorBlock.innerText = 'Не вдалося з’єднатися із сервером';
+            errorBlock.style.display = 'block';
+        }
+    }
+});
+</script>
+{% endblock %}

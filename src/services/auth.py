@@ -1,0 +1,262 @@
+import secrets
+from copy import copy
+from datetime import datetime, timedelta, timezone
+from typing import Optional
+from uuid import UUID
+
+from fastapi import Request, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+from jose import JWTError, jwt
+from pwdlib import PasswordHash
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.config import messages
+from src.config.settings import settings
+from src.dependencies.db import get_db
+from src.models.user import User
+from src.models.token import Token
+from src.repositories.users import UserRepo
+from src.schemas.users import CreateUserSchema, UserUpdateByAdminSchema
+
+
+class AuthService:
+
+    def __init__(self):
+        self.password_hash = PasswordHash.recommended()
+
+    # pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
+
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail=messages.COULD_NOT_VALIDATE_CREDENTIALS,
+        headers={"WWW-AUTHENTICATE": "BEARER"},
+    )
+
+    async def get_user_by_email(self, email: str, db: AsyncSession):
+        user = await UserRepo(db).get_user_by_email(email)
+        return user
+
+
+    # async def get_user_by_id(self, user_id: UUID, db: AsyncSession):
+    #     user = await UserRepo(db).get_user_by_id(user_id)
+    #     return user
+
+    def get_password_hash(self, password: str):
+        return self.password_hash.hash(password)
+
+    def verify_password(self, plain_password: str, hashed_password: str) -> bool:
+        """Перевірка пароля"""
+        try:
+            return self.password_hash.verify(plain_password, hashed_password)
+        except Exception:
+            return False
+
+    # def generate_password(self):
+    #     length = 12
+    #     alphabet = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+    #     return ''.join(secrets.choice(alphabet) for i in range(length))
+
+    # def verify_password(self, plain_password, hashed_pasword):
+    #     return self.pwd_context.verify(plain_password, hashed_pasword)
+
+    async def create_user(self, body: CreateUserSchema, db: AsyncSession):
+        new_user = await UserRepo(db).create_user(body)
+
+        return new_user
+
+    # async def get_user_by_username(self, username: str, db: AsyncSession):
+    #     user = await UserRepo(db).get_user_by_username(username)
+    #     return user
+
+    # async def get_user_by_email(self, email: str, db: AsyncSession):
+    #     user = await UserRepo(db).get_user_by_email(email)
+    #     return user
+
+    # # async def get_current_user(self, email: str, db: AsyncSession):
+    # #     user = await UserRepo(db).get_user_by_email(email)
+    # #     return user
+
+    # async def check_access_token_blacklist(self, token, db: AsyncSession):
+    #     blacklist = await UserRepo(db).get_token_blacklist(token)
+    #     return blacklist
+
+    # async def change_email(self, user_id: UUID, new_email: str, db: AsyncSession):
+    #     user = await UserRepo(db).change_email(user_id, new_email)
+    #     return user
+
+    # async def extract_token_data(self, token, db: AsyncSession):
+    #     # double usage of code, separate func
+    #     # check if we can use token (not in blacklist)
+    #     # if it is - raise 401.
+    #     blacklist = await self.check_access_token_blacklist(token, db)
+    #     if blacklist is not None:
+    #         raise self.credentials_exception
+
+    #     try:
+    #         payload = jwt.decode(token, self.SECRET_KEY, algorithms=[self.ALGORITHM])
+    #         email = payload["sub"]
+    #         if payload["scope"] == "access_token":
+    #             if email is None:
+    #                 raise self.credentials_exception
+    #         else:
+    #             raise self.credentials_exception
+    #     except JWTError:
+    #         raise self.credentials_exception
+    #     user_hash = str(email)
+    #     user = await UserRepo(db).get_user_by_email(user_hash)
+    #     if user is None:
+    #         raise self.credentials_exception
+    #     return user
+
+    # async def get_current_user(self, token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)):
+    #     """
+    #     need add to routers:
+
+    #     from src.models.users import User
+    #     from src.services.auth import auth_service
+
+    #     user: User = Depends(auth_service.get_current_user)
+    #     """
+    #     # if token not in blacklist and user exists - extract and return current user
+    #     user = await self.extract_token_data(token, db)
+    #     return user
+
+    async def create_access_token(self, email: str, expires_delta: timedelta | None = None) -> str:
+        """Генерує безпечний JWT токен доступу для користувача"""
+        to_encode = {"sub": email, "type": "access"}
+
+        if expires_delta:
+            expire = datetime.now(timezone.utc) + expires_delta
+        else:
+            expire = datetime.now(timezone.utc) + timedelta(minutes=settings.auth.ACCESS_TOKEN_EXPIRE_MINUTES)
+
+        to_encode.update({"exp": expire})
+
+        encoded_jwt = jwt.encode(to_encode, settings.auth.SECRET_KEY_JWT, algorithm=settings.auth.ALGORITHM)
+        return encoded_jwt
+
+    async def create_refresh_token(
+            self, email: str, expires_delta: timedelta | None = None
+        ) -> str:
+            """
+            Генерує довготривалий JWT Refresh токен для оновлення сесії.
+            """
+            to_encode = {"sub": email, "type": "refresh"}
+
+            if expires_delta:
+                expire = datetime.now(timezone.utc) + expires_delta
+            else:
+                # Наприклад, settings.auth.REFRESH_TOKEN_EXPIRE_DAYS = 7
+                expire = datetime.now(timezone.utc) + timedelta(
+                    days=settings.auth.REFRESH_TOKEN_EXPIRE_DAYS
+                )
+
+            to_encode.update({"exp": expire})
+
+            encoded_jwt = jwt.encode(
+                to_encode, settings.auth.SECRET_KEY_JWT, algorithm=settings.auth.ALGORITHM
+            )
+            return encoded_jwt
+
+    async def update_refresh_token(self, user: User, refresh_token: str | None, db: AsyncSession):
+        await UserRepo(db).update_refresh_token(user, refresh_token)
+
+    async def logout(self, user, db: AsyncSession) -> None:
+        """Анулює сесію користувача, видаляючи його Refresh токен з бази даних"""
+        # Передаємо None, щоб репозиторій видалив запис з таблиці tokens
+        await self.update_refresh_token(user, None, db)
+
+    async def verify_refresh_token(self, token: str) -> str:
+        """
+        Перевіряє JWT Refresh токен.
+        Повертає email користувача, якщо токен дійсний.
+        """
+        try:
+            payload = jwt.decode(
+                token,
+                settings.auth.SECRET_KEY_JWT,
+                algorithms=[settings.auth.ALGORITHM]
+            )
+            # Перевіряємо внутрішній тип токена
+            if payload.get("type") != "refresh":
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Недійсний тип токена"
+                )
+
+            email: str = payload.get("sub")
+            if email is None:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Недійсний токен: відсутній суб'єкт"
+                )
+            return email
+
+        except jwt.ExpiredSignatureError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Термін дії Refresh токена закінчився. Увійдіть знову"
+            )
+        except jwt.JWTError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Недійсний Refresh токен"
+            )
+
+    async def get_token_record(self, token_str: str, db: AsyncSession) -> Token | None:
+        """Шукає запис токена в базі даних PostgreSQL"""
+        return await UserRepo(db).get_token_record(token_str)
+
+
+    # async def update_password(self, user_id: UUID, new_password_hash: str, db: AsyncSession):
+    #     await UserRepo(db).update_password(user_id, new_password_hash)
+
+    # async def add_token_to_blacklist(self, token: str, db: AsyncSession):
+    #     await UserRepo(db).add_token_to_blacklist(token)
+
+    # def create_email_token(self, data: dict):
+    #     to_encode = data.copy()
+    #     expire = datetime.utcnow() + timedelta(days=1)
+    #     to_encode.update({"iat": datetime.utcnow(), "exp": expire})
+    #     token = jwt.encode(to_encode, self.SECRET_KEY, algorithm=self.ALGORITHM)
+    #     return token
+
+    # async def get_email_from_token(self, token: str):
+    #     try:
+    #         payload = jwt.decode(token, self.SECRET_KEY, algorithms=[self.ALGORITHM])
+    #         email = payload["sub"]
+    #         return email
+    #     except JWTError as e:
+    #         print(e)
+    #         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+    #                             detail=messages.INVALID_TOKEN)
+
+    # async def confirmed_email(self, user: User, db: AsyncSession):
+    #     await UserRepo(db).confirmed_email(user)
+
+    # async def logout_service(self, token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)):
+    #     # extract user from token
+    #     # if we have no user
+    #     # using copy because of sqlalchemy rewrite some data in previous objects
+    #     user = copy(await self.extract_token_data(token, db))
+
+    #     # clear refresh token data for current user
+    #     await UserRepo(db).remove_refresh_token(user)
+
+    #     # adding access token to blacklist
+    #     await self.add_token_to_blacklist(token=token, db=db)
+    #     return "logout"
+
+    # async def update_avatar(self, user_id: UUID, avatar_url: str, db: AsyncSession) -> User:
+    #     user = await UserRepo(db).update_avatar(user_id, avatar_url)
+    #     return user
+
+    # async def update_user_by_admin(
+    #     self, user_id: UUID, body: UserUpdateByAdminSchema, db: AsyncSession
+    # ) -> User:
+    #     user = await UserRepo(db).update_user_by_admin(user_id, body)
+    #     return user
+
+
+auth_service = AuthService()

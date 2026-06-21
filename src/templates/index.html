@@ -12,30 +12,51 @@
     p {
         font-size: 1.2rem;
         color: #666;
+        margin-bottom: 30px; /* Трохи збільшили відступ перед кнопками */
+    }
+
+    /* Контейнер для кнопок, щоб вони стояли в один ряд */
+    .button-group {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
     }
 
     .btn {
         display: inline-block;
-        margin-top: 25px;
         padding: 12px 24px;
-        background-color: #0d6efd;
-        color: white;
         text-decoration: none;
         border-radius: 8px;
+        font-size: 1rem;
+        font-weight: bold;
         transition: 0.2s;
     }
 
-    .btn:hover {
+    /* Основна синя кнопка для Входу */
+    .btn-primary {
+        background-color: #0d6efd;
+        color: white;
+    }
+
+    .btn-primary:hover {
         background-color: #0b5ed7;
+    }
+
+    /* Прозора кнопка із синім контуром для Реєстрації */
+    .btn-secondary {
+        background-color: transparent;
+        color: #0d6efd;
+        border: 2px solid #0d6efd;
+        padding: 10px 22px; /* Коригування падінгів через рамку (border) */
+    }
+
+    .btn-secondary:hover {
+        background-color: rgba(13, 110, 253, 0.05);
     }
 </style>
 {% endblock %}
 
 {% block content %}
-    <h1>MyCashFlow</h1>
-    <p>Персональна система обліку доходів, витрат та активів</p>
 
-    <a href="/login" class="btn">
-        Увійти
-    </a>
+
 {% endblock %}

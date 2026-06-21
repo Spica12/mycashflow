@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}MyCashFlow — Реєстрація{% endblock %}
+
+{% block styles %}
+<style>
+    .auth-card {
+        background: white;
+        padding: 40px;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        width: 100%;
+        max-width: 400px;
+        box-sizing: border-box;
+    }
+
+    h2 {
+        font-size: 2rem;
+        margin-bottom: 25px;
+        text-align: center;
+        font-weight: bold;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+        text-align: left;
+    }
+
+    label {
+        display: block;
+        font-size: 0.9rem;
+        margin-bottom: 8px;
+        color: #555;
+        font-weight: 500;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 12px;
+        font-size: 1rem;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        box-sizing: border-box;
+        transition: border-color 0.2s;
+    }
+
+    .form-control:focus {
+        border-color: #0d6efd;
+        outline: none;
+    }
+
+    .btn-submit {
+        width: 100%;
+        padding: 12px;
+        background-color: #0d6efd;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        margin-top: 10px;
+        font-weight: bold;
+    }
+
+    .btn-submit:hover {
+        background-color: #0b5ed7;
+    }
+
+    /* Блок відображення помилок */
+    .error-message {
+        display: none;
+        background-color: #f8d7da;
+        color: #842029;
+        border: 1px solid #f5c2c7;
+        padding: 10px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        font-size: 0.9rem;
+        text-align: left;
+    }
+
+    .auth-links {
+        margin-top: 20px;
+        text-align: center;
+        font-size: 0.9rem;
+        color: #666;
+    }
+
+    .auth-links a {
+        color: #0d6efd;
+        text-decoration: none;
+    }
+
+    .auth-links a:hover {
+        text-decoration: underline;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-card">
+    <h2>Реєстрація</h2>
+
+    <!-- Блок для виведення помилок бекенду -->
+    <div id="errorMessage" class="error-message"></div>
+
+    <!-- Форма БЕЗ атрибутів action та method, обробляється через JS -->
+    <form id="registerForm">
+        <div class="form-group">
+            <label for="email">Електронна пошта</label>
+            <input type="email" id="email" class="form-control" placeholder="example@mail.com" required>
+        </div>
+
+        <div class="form-group">
+            <label for="password">Пароль (мінімум 8 символів)</label>
+            <input type="password" id="password" class="form-control" minlength="8" placeholder="••••••••" required>
+        </div>
+
+        <button type="submit" class="btn-submit">
+            Створити акаунт
+        </button>
+    </form>
+
+    <div class="auth-links">
+        Вже маєте акаунт? <a href="/login">Увійти</a>
+    </div>
+</div>
+
+<script>
+document.getElementById('registerForm').addEventListener('submit', async (e) => {
+    e.preventDefault(); // Зупиняємо перезавантаження сторінки браузером
+
+    const errorBlock = document.getElementById('errorMessage');
+    errorBlock.style.display = 'none'; // Ховаємо старі помилки
+
+    // Збираємо дані відповідно до вашої Pydantic-схеми UserSchema
+    const formData = {
+        email: document.getElementById('email').value,
+        password: document.getElementById('password').value,
+    };
+
+    try {
+        // Зверніть увагу: шлях має вести саме на ваш @router_auth.post("/register")
+        const response = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            // Якщо бекенд повернув статус 201 Created
+            window.location.href = '/auth/login';
+        } else {
+            // Перехоплюємо помилки валідації Pydantic або ваші HTTPException
+            let errorText = data.detail || 'Сталася помилка при реєстрації';
+
+            // Якщо прийшла складна помилка валідації Pydantic (масив логів)
+            if (Array.isArray(data.detail)) {
+                errorText = data.detail.map(err => err.msg).join('<br>');
+            }
+
+            errorBlock.innerHTML = errorText;
+            errorBlock.style.display = 'block';
+        }
+    } catch (err) {
+        errorBlock.innerText = 'Не вдалося з’єднатися із сервером';
+        errorBlock.style.display = 'block';
+    }
+});
+</script>
+{% endblock %}

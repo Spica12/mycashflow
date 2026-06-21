@@ -5,7 +5,7 @@ from pathlib import Path
 from src.utils.logging import logger
 
 
-class ModelConfig:
+class ModelConfig(BaseSettings):
 
     model_config = ConfigDict(
         extra="ignore",
@@ -14,7 +14,7 @@ class ModelConfig:
     )
 
 
-class DbSettings(BaseSettings, ModelConfig):
+class DbSettings(ModelConfig):
 
     DB_HOST: str | None = None
     DB_PORT: int | None = None
@@ -46,12 +46,25 @@ class DbSettings(BaseSettings, ModelConfig):
     #         return f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}/{self.DB_NAME}"
 
 
-class Settings(BaseSettings, ModelConfig):
+class AuthSettings(ModelConfig):
+
+    SECRET_KEY_JWT: str = "1234567890"
+    ALGORITHM: str = "HS256"
+
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+
+
+class Settings(ModelConfig):
     MODE: str = "DEV"
 
     db: DbSettings = Field(default_factory=DbSettings)
+    auth: AuthSettings = Field(default_factory=AuthSettings)
 
     BASE_DIR: Path = Path(__file__).parent.parent
+
+
+
 
 
 
