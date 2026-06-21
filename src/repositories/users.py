@@ -88,6 +88,13 @@ class UserRepo:
         # 2. Фіксуємо зміни в PostgreSQL
         await self.db.commit()
 
+    async def get_token_record(self, token_str: str) -> Token | None:
+        """Шукає запис токена в базі даних PostgreSQL"""
+        stmt = select(Token).filter_by(token=token_str)
+        result = await self.db.execute(stmt)
+
+        return result.scalar_one_or_none()
+
     # async def remove_refresh_token(self, user: UserModel):
     #     stmt = select(TokenModel).filter_by(user_id=user.id)
     #     result = await self.db.execute(stmt)

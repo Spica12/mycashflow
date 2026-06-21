@@ -12,7 +12,7 @@ from src.models.user import User
 # from src.schemas.users import (RequestPasswordResetSchema, TokenSchema,
 #                                UserSchema, UserMyResponseSchema)
 from src.schemas.users import UserSchema, CreateUserSchema, UserMyResponseSchema
-from src.schemas.token import TokenSchema
+from src.schemas.token import TokenSchema, RefreshTokenRequestSchema
 from src.services.auth import auth_service
 from src.services.dependencies import get_current_user_from_cookie
 
@@ -113,10 +113,56 @@ async def api_logout(
 
     return {"message": "Сесію успішно завершено"}
 
-# @router_api_auth.get("/logout")
-# async def logout(current_user: User = Depends(auth_service.logout_service)):
-#     return RedirectResponse(status_code=status.HTTP_302_FOUND, url="/")
+@router_api_auth.post("/refresh", response_model=TokenSchema)
+async def refresh_token(
+    response: Response,
+    body: RefreshTokenRequestSchema,
+    db: AsyncSession = Depends(get_db)
+):
+    """Ендпоінт оновлення Access та Refresh токенів за допомогою діючого Refresh токена"""
 
+    # 1. Валідуємо JWT структуру токена та дістаємо email
+    email = await auth_service.verify_refresh_token(body.refresh_token)
+
+    # 2. Перевіряємо, чи цей токен фізично існує в PostgreSQL таблиці tokens
+    token_record = await auth_service.get_token_record(body.refresh_token, db)
+    if not token_record:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Сесію не знайдено або вона була анульована"
+        )
+
+    # 3. Шукаємо користувача, якому належить токен
+    user = await auth_service.get_user_by_email(email, db)
+    if not user or not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Користувач не знайдений або заблокований"
+        )
+
+    # 4. ГЕНЕРУЄМО НОВУ ПАРУ ТОКЕНІВ (Ротація токенів для безпеки)
+    new_access_token = await auth_service.create_access_token(user.email)
+    new_refresh_token = await auth_service.create_refresh_token(user.email)
+
+    # 5. Оновлюємо Refresh токен у базі даних (замінюємо старий на новий)
+    await auth_service.update_refresh_token(user, new_refresh_token, db)
+
+    # 6. Оновлюємо HTTP-Only куку для фронтенду сайту
+    response.set_cookie(
+        key="access_token",
+        value=f"Bearer {new_access_token}",
+        httponly=True,
+        max_age=1800,  # 30 хвилин
+        samesite="lax",
+        secure=False
+    )
+
+    # 7. Повертаємо нові токени для клієнтів API
+    return {
+        "access_token": new_access_token,
+        "refresh_token": new_refresh_token,
+        "token_type": "bearer",
+    }
 
 # @router_api_auth.get("/refresh", response_model=TokenSchema)
 # async def refresh_token(

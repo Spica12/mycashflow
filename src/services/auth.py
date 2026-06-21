@@ -14,6 +14,7 @@ from src.config import messages
 from src.config.settings import settings
 from src.dependencies.db import get_db
 from src.models.user import User
+from src.models.token import Token
 from src.repositories.users import UserRepo
 from src.schemas.users import CreateUserSchema, UserUpdateByAdminSchema
 
@@ -165,6 +166,48 @@ class AuthService:
         """Анулює сесію користувача, видаляючи його Refresh токен з бази даних"""
         # Передаємо None, щоб репозиторій видалив запис з таблиці tokens
         await self.update_refresh_token(user, None, db)
+
+    async def verify_refresh_token(self, token: str) -> str:
+        """
+        Перевіряє JWT Refresh токен.
+        Повертає email користувача, якщо токен дійсний.
+        """
+        try:
+            payload = jwt.decode(
+                token,
+                settings.auth.SECRET_KEY_JWT,
+                algorithms=[settings.auth.ALGORITHM]
+            )
+            # Перевіряємо внутрішній тип токена
+            if payload.get("type") != "refresh":
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Недійсний тип токена"
+                )
+
+            email: str = payload.get("sub")
+            if email is None:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Недійсний токен: відсутній суб'єкт"
+                )
+            return email
+
+        except jwt.ExpiredSignatureError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Термін дії Refresh токена закінчився. Увійдіть знову"
+            )
+        except jwt.JWTError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Недійсний Refresh токен"
+            )
+
+    async def get_token_record(self, token_str: str, db: AsyncSession) -> Token | None:
+        """Шукає запис токена в базі даних PostgreSQL"""
+        return await UserRepo(db).get_token_record(token_str)
+
 
     # async def update_password(self, user_id: UUID, new_password_hash: str, db: AsyncSession):
     #     await UserRepo(db).update_password(user_id, new_password_hash)
