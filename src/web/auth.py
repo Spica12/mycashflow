@@ -18,3 +18,11 @@ async def register(request: Request):
         name="register.html",
         context={}
     )
+
+@router_web_auth.get("/login", response_class=HTMLResponse)
+async def register(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="login.html",
+        context={}
+    )

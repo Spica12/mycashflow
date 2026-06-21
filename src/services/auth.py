@@ -1,10 +1,10 @@
 import secrets
 from copy import copy
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from uuid import UUID
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Request, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from pwdlib import PasswordHash
@@ -19,8 +19,6 @@ from src.schemas.users import CreateUserSchema, UserUpdateByAdminSchema
 
 
 class AuthService:
-
-    SECRET_KEY = settings.SECRET_KEY_JWT
 
     def __init__(self):
         self.password_hash = PasswordHash.recommended()
@@ -123,37 +121,49 @@ class AuthService:
     #     user = await self.extract_token_data(token, db)
     #     return user
 
-    # async def create_access_token(self, email: str, expires_delta: Optional[float] = None):
-    #     to_encode = {"sub": str(email)}
-    #     if expires_delta:
-    #         expire = datetime.utcnow() + timedelta(seconds=expires_delta)
-    #     else:
-    #         expire = datetime.utcnow() + timedelta(minutes=15)
-    #     to_encode.update(
-    #         {"iat": datetime.utcnow(), "exp": expire, "scope": "access_token"}
-    #     )
-    #     encode_jwt = jwt.encode(to_encode, self.SECRET_KEY, algorithm=self.ALGORITHM)
+    async def create_access_token(self, email: str, expires_delta: timedelta | None = None) -> str:
+        """Генерує безпечний JWT токен доступу для користувача"""
+        to_encode = {"sub": email, "type": "access"}
 
-    #     return encode_jwt
+        if expires_delta:
+            expire = datetime.now(timezone.utc) + expires_delta
+        else:
+            expire = datetime.now(timezone.utc) + timedelta(minutes=settings.auth.ACCESS_TOKEN_EXPIRE_MINUTES)
 
-    # async def create_refresh_token(self, email: str, expires_delta: Optional[float] = None):
-    #     to_encode = {"sub": str(email)}
-    #     if expires_delta:
-    #         expire = datetime.utcnow() + timedelta(seconds=expires_delta)
-    #     else:
-    #         expire = datetime.utcnow() + timedelta(days=7)
-    #     to_encode.update(
-    #         {"iat": datetime.utcnow(), "exp": expire, "scope": "refresh_token"}
-    #     )
-    #     encode_jwt = jwt.encode(to_encode, self.SECRET_KEY, algorithm=self.ALGORITHM)
-    #     return encode_jwt
+        to_encode.update({"exp": expire})
+
+        encoded_jwt = jwt.encode(to_encode, settings.auth.SECRET_KEY_JWT, algorithm=settings.auth.ALGORITHM)
+        return encoded_jwt
+
+    async def create_refresh_token(
+            self, email: str, expires_delta: timedelta | None = None
+        ) -> str:
+            """
+            Генерує довготривалий JWT Refresh токен для оновлення сесії.
+            """
+            to_encode = {"sub": email, "type": "refresh"}
+
+            if expires_delta:
+                expire = datetime.now(timezone.utc) + expires_delta
+            else:
+                # Наприклад, settings.auth.REFRESH_TOKEN_EXPIRE_DAYS = 7
+                expire = datetime.now(timezone.utc) + timedelta(
+                    days=settings.auth.REFRESH_TOKEN_EXPIRE_DAYS
+                )
+
+            to_encode.update({"exp": expire})
+
+            encoded_jwt = jwt.encode(
+                to_encode, settings.auth.SECRET_KEY_JWT, algorithm=settings.auth.ALGORITHM
+            )
+            return encoded_jwt
 
     # async def get_refresh_token_by_user(self, user: User, db: AsyncSession):
     #     refresh_token = await UserRepo(db).get_refresh_token_by_user(user)
     #     return refresh_token
 
-    # async def update_refresh_token(self, user: User, refresh_token: str | None, db: AsyncSession):
-    #     await UserRepo(db).update_refresh_token(user, refresh_token)
+    async def update_refresh_token(self, user: User, refresh_token: str | None, db: AsyncSession):
+        await UserRepo(db).update_refresh_token(user, refresh_token)
 
     # async def update_password(self, user_id: UUID, new_password_hash: str, db: AsyncSession):
     #     await UserRepo(db).update_password(user_id, new_password_hash)

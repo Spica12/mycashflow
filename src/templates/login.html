@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}MyCashFlow — Реєстрація{% endblock %}
+{% block title %}MyCashFlow — Вхід{% endblock %}
 
 {% block styles %}
 <style>
@@ -41,7 +41,6 @@
         border: 1px solid #ccc;
         border-radius: 8px;
         box-sizing: border-box;
-        transition: border-color 0.2s;
     }
 
     .form-control:focus {
@@ -67,7 +66,6 @@
         background-color: #0b5ed7;
     }
 
-    /* Блок відображення помилок */
     .error-message {
         display: none;
         background-color: #f8d7da;
@@ -100,76 +98,69 @@
 
 {% block content %}
 <div class="auth-card">
-    <h2>Реєстрація</h2>
+    <h2>Увійти</h2>
 
-    <!-- Блок для виведення помилок бекенду -->
     <div id="errorMessage" class="error-message"></div>
 
-    <!-- Форма БЕЗ атрибутів action та method, обробляється через JS -->
-    <form id="registerForm">
+    <form id="loginForm">
         <div class="form-group">
             <label for="email">Електронна пошта</label>
             <input type="email" id="email" class="form-control" placeholder="example@mail.com" required>
         </div>
 
         <div class="form-group">
-            <label for="password">Пароль (мінімум 8 символів)</label>
-            <input type="password" id="password" class="form-control" minlength="8" placeholder="••••••••" required>
+            <label for="password">Пароль</label>
+            <input type="password" id="password" class="form-control" placeholder="••••••••" required>
         </div>
 
         <button type="submit" class="btn-submit">
-            Створити акаунт
+            Увійти
         </button>
     </form>
 
     <div class="auth-links">
-        Вже маєте акаунт? <a href="/login">Увійти</a>
+        Ще немає акаунта? <a href="/auth/register">Реєстрація</a>
     </div>
 </div>
 
 <script>
-document.getElementById('registerForm').addEventListener('submit', async (e) => {
-    e.preventDefault(); // Зупиняємо перезавантаження сторінки браузером
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
 
     const errorBlock = document.getElementById('errorMessage');
-    errorBlock.style.display = 'none'; // Ховаємо старі помилки
+    if (errorBlock) errorBlock.style.display = 'none';
 
-    // Збираємо дані відповідно до вашої Pydantic-схеми UserSchema
-    const formData = {
-        email: document.getElementById('email').value,
-        password: document.getElementById('password').value,
-    };
+    // Створюємо об'єкт параметрів форми
+    const params = new URLSearchParams();
+    // В OAuth2 формах email завжди передається в поле 'username'
+    params.append('username', document.getElementById('email').value);
+    params.append('password', document.getElementById('password').value);
 
     try {
-        // Зверніть увагу: шлях має вести саме на ваш @router_auth.post("/register")
-        const response = await fetch('/api/auth/register', {
+        const response = await fetch('/api/auth/login', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/x-www-form-urlencoded'
             },
-            body: JSON.stringify(formData)
+            body: params
         });
 
         const data = await response.json();
 
         if (response.ok) {
-            // Якщо бекенд повернув статус 201 Created
-            window.location.href = '/auth/login';
+            // Якщо вхід успішний, перенаправляємо в майбутній профіль
+            window.location.href = '/';
         } else {
-            // Перехоплюємо помилки валідації Pydantic або ваші HTTPException
-            let errorText = data.detail || 'Сталася помилка при реєстрації';
-
-            // Якщо прийшла складна помилка валідації Pydantic (масив логів)
-            if (Array.isArray(data.detail)) {
-                errorText = data.detail.map(err => err.msg).join('<br>');
+            if (errorBlock) {
+                errorBlock.innerHTML = data.detail || 'Невірний email або пароль';
+                errorBlock.style.display = 'block';
             }
-
-            errorBlock.innerHTML = errorText;
-            errorBlock.style.display = 'block';
         }
     } catch (err) {
-        errorBlock.innerText = 'Не вдалося з’єднатися із сервером';
-        errorBlock.style.display = 'block';
+        if (errorBlock) {
+            errorBlock.innerText = 'Не вдалося з’єднатися із сервером';
+            errorBlock.style.display = 'block';
+        }
     }
 });
 </script>

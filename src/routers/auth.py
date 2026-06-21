@@ -1,5 +1,5 @@
 from fastapi import (APIRouter, BackgroundTasks, Depends, HTTPException,
-                     Request, Security, status)
+                     Request, Security, status, Response)
 from fastapi.responses import RedirectResponse, HTMLResponse
 from fastapi.security import (HTTPAuthorizationCredentials, HTTPBearer,
                               OAuth2PasswordRequestForm)
@@ -12,6 +12,7 @@ from src.models.user import User
 # from src.schemas.users import (RequestPasswordResetSchema, TokenSchema,
 #                                UserSchema, UserMyResponseSchema)
 from src.schemas.users import UserSchema, CreateUserSchema, UserMyResponseSchema
+from src.schemas.token import TokenSchema
 from src.services.auth import auth_service
 
 router_api_auth = APIRouter(prefix="/auth", tags=["Auth"])
@@ -46,41 +47,55 @@ async def register(
     return new_user
 
 
-# @router_api_auth.post("/login", response_model=TokenSchema)
-# async def login(
-#     body: OAuth2PasswordRequestForm = Depends(),
-#     db: AsyncSession = Depends(get_db),
-# ):
-#     # need response model
-#     user = await auth_service.get_user_by_email(body.username, db)
-#     if user is None:
-#         raise HTTPException(
-#             status_code=status.HTTP_401_UNAUTHORIZED, detail=messages.INVALID_EMAIL
-#         )
-#     if not user.is_active:
-#         raise HTTPException(
-#             status_code=status.HTTP_403_FORBIDDEN,
-#             detail=messages.ACCOUNT_BLOCKED,
-#         )
-#     if not user.confirmed:
-#         raise HTTPException(
-#             status_code=status.HTTP_401_UNAUTHORIZED,
-#             detail=messages.EMAIL_NOT_CONFIRMED,
-#         )
-#     if not auth_service.verify_password(body.password, user.password):
-#         raise HTTPException(
-#             status_code=status.HTTP_401_UNAUTHORIZED, detail=messages.INVALID_PASSWORD
-#         )
-#     access_token = await auth_service.create_access_token(user.email)
-#     refresh_token = await auth_service.create_refresh_token(user.email)
+@router_api_auth.post("/login", response_model=TokenSchema)
+async def login(
+    response: Response,  # Додаємо для запису кук
+    body: OAuth2PasswordRequestForm = Depends(),
+    db: AsyncSession = Depends(get_db),
+):
+    # 1. Шукаємо користувача за username (це ваш email у формі)
+    user = await auth_service.get_user_by_email(body.username, db)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail=messages.INVALID_EMAIL
+        )
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail=messages.ACCOUNT_BLOCKED
+        )
+    # Якщо у вас є поле підтвердження пошти (опціонально)
+    # if not user.confirmed:
+    #     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=messages.EMAIL_NOT_CONFIRMED)
 
-#     await auth_service.update_refresh_token(user, refresh_token, db)
+    # 2. ВИПРАВЛЕНО: міняємо user.password на user.hashed_password
+    if not auth_service.verify_password(body.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail=messages.INVALID_PASSWORD
+        )
 
-#     return {
-#         "access_token": access_token,
-#         "refresh_token": refresh_token,
-#         "token_type": "bearer",
-#     }
+    # 3. ГЕНЕРУЄМО ТОКЕНИ
+    access_token = await auth_service.create_access_token(user.email)
+    refresh_token = await auth_service.create_refresh_token(user.email)
+
+    await auth_service.update_refresh_token(user, refresh_token, db)
+
+    # 4. ЗАПИСУЄМО В COOKIES (щоб авторизація не злітала на HTML сторінках сайту)
+    response.set_cookie(
+        key="access_token",
+        value=f"Bearer {access_token}",
+        httponly=True,
+        max_age=1800,  # 30 хвилин
+        samesite="lax",
+        secure=False   # виставте True на продакшені з HTTPS
+    )
+
+    # 5. ПОВЕРТАЄМО JSON (відповідає вашій TokenSchema для Swagger)
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+    }
+
 
 
 # @router_api_auth.get("/logout")

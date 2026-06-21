@@ -66,18 +66,27 @@ class UserRepo:
     #     await self.db.commit()
     #     await self.db.refresh(user)
 
-    # async def update_refresh_token(
-    #     self, user: UserModel, refresh_token: TokenModel | None
-    # ):
-    #     stmt = select(TokenModel).filter_by(user_id=user.id)
-    #     token = await self.db.execute(stmt)
-    #     token = token.scalar_one_or_none()
-    #     if token:
-    #         token.token = refresh_token
-    #     else:
-    #         new_token = TokenModel(token=refresh_token, user_id=user.id)
-    #         self.db.add(new_token)
-    #     await self.db.commit()
+    async def update_refresh_token(
+        self, user: User, refresh_token_str: Token | None
+    ):
+        stmt = select(Token).filter_by(user_id=user.id)
+        result = await self.db.execute(stmt)
+        token_record = result.scalar_one_or_none()
+        if token_record:
+            if refresh_token_str is None:
+                # Якщо передали None — видаляємо запис сесії
+                await self.db.delete(token_record)
+            else:
+                # Якщо токен є — оновлюємо його значення (чистий рядок str)
+                token_record.token = refresh_token_str
+        else:
+            if refresh_token_str:
+                # Якщо запису не було і передано новий токен — створюємо новий рядок
+                new_token = Token(token=refresh_token_str, user_id=user.id)
+                self.db.add(new_token)
+
+        # 2. Фіксуємо зміни в PostgreSQL
+        await self.db.commit()
 
     # async def remove_refresh_token(self, user: UserModel):
     #     stmt = select(TokenModel).filter_by(user_id=user.id)
