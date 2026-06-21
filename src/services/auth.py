@@ -158,12 +158,13 @@ class AuthService:
             )
             return encoded_jwt
 
-    # async def get_refresh_token_by_user(self, user: User, db: AsyncSession):
-    #     refresh_token = await UserRepo(db).get_refresh_token_by_user(user)
-    #     return refresh_token
-
     async def update_refresh_token(self, user: User, refresh_token: str | None, db: AsyncSession):
         await UserRepo(db).update_refresh_token(user, refresh_token)
+
+    async def logout(self, user, db: AsyncSession) -> None:
+        """Анулює сесію користувача, видаляючи його Refresh токен з бази даних"""
+        # Передаємо None, щоб репозиторій видалив запис з таблиці tokens
+        await self.update_refresh_token(user, None, db)
 
     # async def update_password(self, user_id: UUID, new_password_hash: str, db: AsyncSession):
     #     await UserRepo(db).update_password(user_id, new_password_hash)

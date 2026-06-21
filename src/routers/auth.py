@@ -14,6 +14,7 @@ from src.models.user import User
 from src.schemas.users import UserSchema, CreateUserSchema, UserMyResponseSchema
 from src.schemas.token import TokenSchema
 from src.services.auth import auth_service
+from src.services.dependencies import get_current_user_from_cookie
 
 router_api_auth = APIRouter(prefix="/auth", tags=["Auth"])
 get_refresh_token = HTTPBearer()
@@ -96,7 +97,21 @@ async def login(
         "token_type": "bearer",
     }
 
+@router_api_auth.post("/logout", status_code=status.HTTP_200_OK)
+async def api_logout(
+    response: Response,
+    current_user = Depends(get_current_user_from_cookie),
+    db: AsyncSession = Depends(get_db)
+):
+    """Технічний ендпоінт для анулювання сесії в БД та очищення кук"""
+    if current_user:
+        # 1. Видаляємо Refresh токен з PostgreSQL таблиці tokens
+        await auth_service.logout(current_user, db)
 
+    # 2. Видаляємо Access токен з кук браузера
+    response.delete_cookie(key="access_token", path="/")
+
+    return {"message": "Сесію успішно завершено"}
 
 # @router_api_auth.get("/logout")
 # async def logout(current_user: User = Depends(auth_service.logout_service)):
