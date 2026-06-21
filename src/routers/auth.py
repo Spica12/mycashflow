@@ -1,24 +1,23 @@
 from fastapi import (APIRouter, BackgroundTasks, Depends, HTTPException,
                      Request, Security, status)
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, HTMLResponse
 from fastapi.security import (HTTPAuthorizationCredentials, HTTPBearer,
                               OAuth2PasswordRequestForm)
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.config import messages
+from src.config.templates import templates
 from src.dependencies.db import get_db
 from src.models.user import User
 # from src.schemas.users import (RequestPasswordResetSchema, TokenSchema,
 #                                UserSchema, UserMyResponseSchema)
 from src.schemas.users import UserSchema, CreateUserSchema, UserMyResponseSchema
-
 from src.services.auth import auth_service
 
-router_auth = APIRouter(prefix="/auth", tags=["Auth"])
+router_api_auth = APIRouter(prefix="/auth", tags=["Auth"])
 get_refresh_token = HTTPBearer()
 
-
-@router_auth.post(
+@router_api_auth.post(
     "/register",
     response_model=UserMyResponseSchema,
     status_code=status.HTTP_201_CREATED
@@ -47,7 +46,7 @@ async def register(
     return new_user
 
 
-# @router_auth.post("/login", response_model=TokenSchema)
+# @router_api_auth.post("/login", response_model=TokenSchema)
 # async def login(
 #     body: OAuth2PasswordRequestForm = Depends(),
 #     db: AsyncSession = Depends(get_db),
@@ -84,12 +83,12 @@ async def register(
 #     }
 
 
-# @router_auth.get("/logout")
+# @router_api_auth.get("/logout")
 # async def logout(current_user: User = Depends(auth_service.logout_service)):
 #     return RedirectResponse(status_code=status.HTTP_302_FOUND, url="/")
 
 
-# @router_auth.get("/refresh", response_model=TokenSchema)
+# @router_api_auth.get("/refresh", response_model=TokenSchema)
 # async def refresh_token(
 #     credentials: HTTPAuthorizationCredentials = Security(get_refresh_token),
 #     db: AsyncSession = Depends(get_db),
@@ -122,7 +121,7 @@ async def register(
 #     }
 
 
-# @router_auth.get("/password-reset/{token}", response_model=None)
+# @router_api_auth.get("/password-reset/{token}", response_model=None)
 # async def password_reset(
 #     token: str,
 #     bt: BackgroundTasks,
@@ -146,7 +145,7 @@ async def register(
 #     return {"message": messages.NEW_PASSWORD_SENT}
 
 
-# @router_auth.post("/password-reset", response_model=None)
+# @router_api_auth.post("/password-reset", response_model=None)
 # async def request_password_reset(
 #     body: RequestPasswordResetSchema,
 #     request: Request,

@@ -1,13 +1,13 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+from fastapi import FastAPI
 
 from src.config.settings import settings
 from src.dependencies.db import check_db_connection
 from src.middleware.logging import log_requests
-from src.routers import auth
+from src.routers.auth import router_api_auth
 from src.utils.logging import logger
+from src.web.main import router_web_main
+from src.web.auth import router_web_auth
 
 
 @asynccontextmanager
@@ -22,16 +22,6 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 app.middleware("http")(log_requests)
-app.include_router(auth.router_auth, prefix="/api")
-
-
-templates = Jinja2Templates(directory="src/templates")
-
-
-@app.get("/", response_class=HTMLResponse)
-def index(request: Request):
-    return templates.TemplateResponse(
-        request=request,
-        name="index.html",
-        context={}
-    )
+app.include_router(router_web_main)
+app.include_router(router_web_auth, prefix="/auth")
+app.include_router(router_api_auth, prefix="/api")
