@@ -1,6 +1,6 @@
 [project]
 name = "mycashflow"
-version = "0.2.0"
+version = "0.3.0"
 description = ""
 authors = [
     {name = "Vitalii",email = "vitaly.savenko12@gmail.com"}
