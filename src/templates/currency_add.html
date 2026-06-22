@@ -49,19 +49,22 @@
 
     <form id="addCurrencyForm" style="max-width: 300px; margin: 0 auto;">
         <div class="form-group">
-            <label for="currencyId">ISO Код (3 літери)</label>
-            <input type="text" id="currencyId" class="form-control" placeholder="USD" required maxlength="3" style="text-transform: uppercase;">
+            <label for="currencyCode">ISO Код (3 літери)</label>
+            <input type="text" id="currencyCode" class="form-control" placeholder="UAH" required maxlength="3" style="text-transform: uppercase;">
         </div>
 
         <div class="form-group">
             <label for="currencyName">Назва валюти</label>
-            <input type="text" id="currencyName" class="form-control" placeholder="Долар США" required>
+            <input type="text" id="currencyName" class="form-control" placeholder="Українська гривня" required>
         </div>
 
-        <div class="form-group">
-            <label for="currencyRate">Курс приведення</label>
-            <input type="number" id="currencyRate" class="form-control" step="0.0001" value="1.0000" required>
-        </div>
+        <!-- Якщо валюта перша і головна, поле курсу автоматично приховується -->
+        {% if not is_main %}
+            <div class="form-group">
+                <label for="currencyRate">Курс приведення</label>
+                <input type="number" id="currencyRate" class="form-control" step="0.0001" value="1.0000" required>
+            </div>
+        {% endif %}
 
         <div style="text-align: left; margin-top: 20px;">
             <button type="submit" class="btn-submit">Створити</button>
@@ -76,11 +79,15 @@ document.getElementById('addCurrencyForm').addEventListener('submit', async (e) 
     const errBlock = document.getElementById('errorBlock');
     errBlock.style.display = 'none';
 
+    const rateInput = document.getElementById('currencyRate');
+    const finalRate = rateInput ? parseFloat(rateInput.value) : 1.0000;
+
+    // ✅ ВИПРАВЛЕНО: Додано пропущений об'єкт payload для валідації в CurrencyCreate
     const payload = {
-        id: document.getElementById('currencyId').value.toUpperCase(),
+        code: document.getElementById('currencyCode').value.toUpperCase(),
         name: document.getElementById('currencyName').value,
-        rate: parseFloat(document.getElementById('currencyRate').value),
-        is_main: false
+        rate: finalRate,
+        is_main: false // Бекенд сам виставить True, якщо це перша валюта користувача
     };
 
     try {
@@ -94,7 +101,7 @@ document.getElementById('addCurrencyForm').addEventListener('submit', async (e) 
             window.location.href = '/currencies';
         } else {
             const data = await response.json();
-            errBlock.innerText = data.detail || 'Помилка при створенні валюти';
+            errBlock.innerText = data.detail || 'Помилка при створені валюти';
             errBlock.style.display = 'block';
         }
     } catch (err) {

@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.dependencies.db import get_db
 from src.models.currency import Currency
 from src.services.currency import currency_service
+from src.services.dependencies import get_current_user_from_cookie
 
 from src.schemas.currency import CurrencyCreate, CurrencyUpdate, CurrencyResponse
 
@@ -11,33 +12,46 @@ router_api_currencies = APIRouter(prefix="/currencies", tags=["Currencies API"])
 
 
 @router_api_currencies.post("/", response_model=CurrencyResponse, status_code=status.HTTP_201_CREATED)
-async def create_currency(body: CurrencyCreate, db: AsyncSession = Depends(get_db)):
+async def create_currency(
+    body: CurrencyCreate,
+    current_user = Depends(get_current_user_from_cookie),
+    db: AsyncSession = Depends(get_db)
+):
 
     # Перевіряємо, чи немає вже такої валюти
-    currency: Currency = await currency_service.get_currency_by_id(body.id, db)
+    currency: Currency = await currency_service.get_currency_by_code(body.code, current_user.id, db)
     if currency:
         raise HTTPException(status_code=409, detail=f"Валюта {body.id} вже існує")
 
-    new_currency = await currency_service.add_currency(body, db)
+    new_currency = await currency_service.add_currency(body, current_user.id, db)
 
     return new_currency
 
 
-@router_api_currencies.put("/{currency_id}", response_model=CurrencyResponse)
-async def update_currency(currency_id: str, body: CurrencyUpdate, db: AsyncSession = Depends(get_db)):
+@router_api_currencies.put("/{currency_code}", response_model=CurrencyResponse)
+async def update_currency(
+    currency_code: str,
+    body: CurrencyUpdate,
+    current_user = Depends(get_current_user_from_cookie),
+    db: AsyncSession = Depends(get_db)
+):
 
-    edited_currency: Currency = await currency_service.edit_currency(currency_id, body, db)
+    edited_currency: Currency = await currency_service.edit_currency(currency_code, body, current_user.id, db)
 
     if not edited_currency:
         raise HTTPException(status_code=404, detail="Валюту не знайдено")
 
     return edited_currency
 
-@router_api_currencies.delete("/{currency_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_currency(currency_id: str, db: AsyncSession = Depends(get_db)):
+@router_api_currencies.delete("/{currency_code}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_currency(
+    currency_code: str,
+    current_user = Depends(get_current_user_from_cookie),
+    db: AsyncSession = Depends(get_db)
+):
     """Ендпоінт для видалення другорядної валюти."""
     # 1. Перевіряємо, чи існує валюта
-    currency = await currency_service.get_currency_by_id(currency_id, db)
+    currency = await currency_service.get_currency_by_code(currency_code, current_user.id, db)
     if not currency:
         raise HTTPException(status_code=404, detail="Валюту не знайдено")
 
@@ -50,7 +64,7 @@ async def delete_currency(currency_id: str, db: AsyncSession = Depends(get_db)):
 
     # 3. Видаляємо сутність
     try:
-        await currency_service.delete_currency(currency_id, db)
+        await currency_service.delete_currency(currency_code, current_user.id, db)
     except Exception:
         # Спрацює RESTRICT захист, якщо до валюти вже прив'язані реальні рахунки
         raise HTTPException(

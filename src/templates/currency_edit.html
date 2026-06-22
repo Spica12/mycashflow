@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Редагування {{ currency.id }}{% endblock %}
+{% block title %}Редагування {{ currency.code }}{% endblock %}
 
 {% block styles %}
 <style>
@@ -20,7 +20,7 @@
     <div id="errorBlock" class="error-block"></div>
 
     <form id="editCurrencyForm" style="max-width: 300px; margin: 0 auto;">
-        <input type="hidden" id="currencyId" value="{{ currency.id }}">
+        <input type="hidden" id="currencyCode" value="{{ currency.code }}">
         <input type="hidden" id="currencyIsMain" value="{{ 'true' if currency.is_main else 'false' }}">
 
         <div class="form-group">
@@ -47,7 +47,7 @@ document.getElementById('editCurrencyForm').addEventListener('submit', async (e)
     const errBlock = document.getElementById('errorBlock');
     errBlock.style.display = 'none';
 
-    const id = document.getElementById('currencyId').value;
+    const code = document.getElementById('currencyCode').value;
 
     const payload = {
         name: document.getElementById('currencyName').value,
@@ -57,7 +57,7 @@ document.getElementById('editCurrencyForm').addEventListener('submit', async (e)
 
     try {
         // ВИПРАВЛЕНО: Запит йде строго на технічний API ендпоінт через метод PUT
-        const response = await fetch(`/api/currencies/${id}`, {
+        const response = await fetch(`/api/currencies/${code}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)

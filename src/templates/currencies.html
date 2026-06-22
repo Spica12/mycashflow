@@ -23,16 +23,16 @@
         <tbody>
             {% for c in currencies %}
             <tr>
-                <td><strong>{{ c.id }}</strong></td>
+                <td><strong>{{ c.code }}</strong></td>
                 <td>{{ c.name }}</td>
                 <td>{{ c.rate }}</td>
-                <td>{{ "⭐ Основна" if c.is_main else "Друрядна" }}</td>
+                <td>{{ "⭐ Основна" if c.is_main else "" }}</td>
                 <td>
                     <!-- Посилання веде на GET роут відображення сторінки форми (Крок 1) -->
-                    <a href="/currencies/edit/{{ c.id }}" style="display: inline-block; padding: 5px 10px; background-color: #333; color: white; text-decoration: none; font-size: 0.9rem; font-weight: bold;">Редагувати</a>
+                    <a href="/currencies/edit/{{ c.code }}" style="display: inline-block; padding: 5px 10px; background-color: #333; color: white; text-decoration: none; font-size: 0.9rem; font-weight: bold;">Редагувати</a>
 
                     {% if not c.is_main %}
-                        <button onclick="deleteCurrencyAction('{{ c.id }}')" style="color: red; margin-left: 10px; cursor: pointer;">Видалити</button>
+                        <button onclick="deleteCurrencyAction('{{ c.code }}')" style="color: red; margin-left: 10px; cursor: pointer;">Видалити</button>
                     {% endif %}
                 </td>
             </tr>

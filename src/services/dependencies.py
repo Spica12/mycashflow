@@ -5,8 +5,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.config.settings import settings
 from src.dependencies.db import get_db
 from src.services.auth import auth_service
+from src.models.user import User
 
-async def get_current_user_from_cookie(request: Request, db: AsyncSession = Depends(get_db)):
+async def get_current_user_from_cookie(request: Request, db: AsyncSession = Depends(get_db)) -> User:
         """
         Зчитує токен із HTTP-Only Cookies та повертає об'єкт користувача з БД.
         Якщо токен відсутній або недійсний, повертає None (користувач — гість).
