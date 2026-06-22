@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Редагування {{ currency.id }}{% endblock %}
+
+{% block styles %}
+<style>
+    .form-group { margin-bottom: 15px; text-align: left; }
+    label { display: block; font-size: 0.9rem; margin-bottom: 5px; font-weight: bold; }
+    .form-control { width: 100%; padding: 8px; font-size: 1rem; box-sizing: border-box; }
+    .form-control:disabled { background-color: #e9ecef; color: #6c757d; cursor: not-allowed; }
+    .btn-submit { padding: 10px 20px; background-color: #0d6efd; color: white; border: none; font-weight: bold; cursor: pointer; }
+    .btn-submit:hover { background-color: #0b5ed7; }
+    .error-block { display: none; background-color: #f8d7da; color: #842029; padding: 10px; margin-bottom: 15px; text-align: left; }
+</style>
+{% endblock %}
+
+{% block content %}
+    <h2>Редагувати валюту {{ currency.id }}</h2>
+
+    <div id="errorBlock" class="error-block"></div>
+
+    <form id="editCurrencyForm" style="max-width: 300px; margin: 0 auto;">
+        <input type="hidden" id="currencyId" value="{{ currency.id }}">
+        <input type="hidden" id="currencyIsMain" value="{{ 'true' if currency.is_main else 'false' }}">
+
+        <div class="form-group">
+            <label for="currencyName">Назва валюти</label>
+            <input type="text" id="currencyName" class="form-control" value="{{ currency.name }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="currencyRate">Курс приведення</label>
+            <input type="number" id="currencyRate" class="form-control" step="0.0001" value="{{ currency.rate }}" required {% if currency.is_main %}disabled{% endif %}>
+        </div>
+
+        <div style="text-align: left; margin-top: 20px;">
+            <!-- Кнопка запускає асинхронний PUT-запиту в API (Крок 2) -->
+            <button type="submit" class="btn-submit">Зберегти зміни</button>
+            <a href="/currencies" style="margin-left: 15px; color: #666; text-decoration: none;">Скасувати</a>
+        </div>
+    </form>
+
+<script>
+document.getElementById('editCurrencyForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const errBlock = document.getElementById('errorBlock');
+    errBlock.style.display = 'none';
+
+    const id = document.getElementById('currencyId').value;
+
+    const payload = {
+        name: document.getElementById('currencyName').value,
+        rate: document.getElementById('currencyRate').disabled ? 1.0000 : parseFloat(document.getElementById('currencyRate').value),
+        is_main: document.getElementById('currencyIsMain').value === 'true'
+    };
+
+    try {
+        // ВИПРАВЛЕНО: Запит йде строго на технічний API ендпоінт через метод PUT
+        const response = await fetch(`/api/currencies/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+            window.location.href = '/currencies'; // Повертаємося на список
+        } else {
+            const data = await response.json();
+            errBlock.innerText = data.detail || 'Помилка при оновленні даних';
+            errBlock.style.display = 'block';
+        }
+    } catch (err) {
+        errBlock.innerText = 'Не вдалося з’єднатися із сервером';
+        errBlock.style.display = 'block';
+    }
+});
+</script>
+{% endblock %}
