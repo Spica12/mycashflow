@@ -1,8 +1,11 @@
+import uuid
 from decimal import Decimal
-from sqlalchemy import String, Numeric, Boolean
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import String, Numeric, Boolean, ForeignKey
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.models.base import Base
+from src.models.user import User
 
 
 class Currency(Base):
@@ -20,6 +23,14 @@ class Currency(Base):
 
     # Прапорець, який вказує, чи є ця валюта базовою для всієї системи (чи зводити до неї баланс)
     is_main: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False
+    )
+
+    user: Mapped[User] = relationship("User", backref="currencies")
 
     def __repr__(self) -> str:
         return f"<Currency {self.id}: rate={self.rate} is_main={self.is_main}>"
