@@ -48,3 +48,10 @@ class CurrencyRepo:
         await self.db.delete(currency)
         await self.db.commit()
         return True
+
+    async def get_all_currencies(self):
+        """Повертає список усіх валют із бази даних"""
+        stmt = select(Currency)
+        result = await self.db.execute(stmt)
+        currencies = result.scalars().all()
+        return currencies
