@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}Валюти{% endblock %}
+
+{% block content %}
+    <h2>Керування валютами</h2>
+
+    <!-- Кнопка додавання нової валюти -->
+    <div style="margin-bottom: 20px; text-align: left;">
+        <button onclick="addCurrencyPrompt()">+ Додати нову</button>
+    </div>
+
+    <!-- Проста мінімальна таблиця для відображення всіх валют -->
+    <table border="1" cellpadding="8" style="border-collapse: collapse; width: 100%; text-align: left;">
+        <thead>
+            <tr>
+                <th>Код ISO</th>
+                <th>Назва</th>
+                <th>Курс</th>
+                <th>Статус</th>
+                <th>Дії</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for c in currencies %}
+            <tr>
+                <td><strong>{{ c.id }}</strong></td>
+                <td>{{ c.name }}</td>
+                <td>{{ c.rate }}</td>
+                <td>
+                    {% if c.is_main %}
+                        ⭐ Основна
+                    {% else %}
+                        Друрядна
+                    {% endif %}
+                </td>
+                <td>
+                    <!-- Кнопки швидкої дії біля кожної валюти -->
+                    <button onclick="editCurrencyPrompt('{{ c.id }}', '{{ c.name }}', '{{ c.rate }}')">Редагувати</button>
+
+                    {% if not c.is_main %}
+                        <button onclick="setMainCurrency('{{ c.id }}')" style="color: green;">Зробити головною</button>
+                        <button onclick="deleteCurrency('{{ c.id }}')" style="color: red;">Видалити</button>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+<script>
+// 1. Функція створення нової валюти через браузерне вікно prompt
+async function addCurrencyPrompt() {
+    const id = prompt("Введіть трилітерний код валюти (наприклад: USD):");
+    if (!id || id.length !== 3) return alert("Некоректний код!");
+
+    const name = prompt("Введіть назву валюти (наприклад: Долар США):");
+    if (!name) return;
+
+    const rate = prompt("Введіть курс приведення (наприклад: 40.50):", "1.0000");
+    if (!rate) return;
+
+    const response = await fetch('/api/currencies/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: id.toUpperCase(), name: name, rate: parseFloat(rate) })
+    });
+
+    if (response.ok) window.location.reload();
+    else alert("Помилка створення валюти");
+}
+
+// 2. Функція редагування валюти через prompt
+async function editCurrencyPrompt(id, oldName, oldRate) {
+    const name = prompt(`Редагування ${id}. Введіть нову назву:`, oldName);
+    if (!name) return;
+
+    const rate = prompt(`Редагування ${id}. Введіть новий курс:`, oldRate);
+    if (!rate) return;
+
+    const response = await fetch(`/api/currencies/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name, rate: parseFloat(rate) })
+    });
+
+    if (response.ok) window.location.reload();
+    else alert("Помилка оновлення валюти");
+}
+
+// 3. Функція призначення валюти головною (PATCH)
+async function setMainCurrency(id) {
+    const response = await fetch(`/api/currencies/${id}/set-main`, { method: 'PATCH' });
+    if (response.ok) window.location.reload();
+    else alert("Помилка зміни статусу валюти");
+}
+
+// 4. Функція видалення валюти (DELETE)
+async function deleteCurrency(id) {
+    if (!confirm(`Ви впевнені, що хочете видалити валюту ${id}?`)) return;
+
+    const response = await fetch(`/api/currencies/${id}`, { method: 'DELETE' });
+    if (response.ok) window.location.reload();
+    else alert("Помилка при видаленні");
+}
+</script>
+{% endblock %}
